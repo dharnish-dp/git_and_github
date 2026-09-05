@@ -61,6 +61,13 @@ wiring up custom diff/merge drivers. [Lesson 13](../lessons/13-pro-workflows-and
 automatically in response to repo events, defined in `.github/workflows/`.
 [Lesson 11](../lessons/11-github-pro-features.md)
 
+**GitHub Pages** — Free static-site hosting served directly from a
+repo's branch/folder, at `username.github.io/repo`.
+[Lesson 11](../lessons/11-github-pro-features.md)
+
+**Runner** — The machine (GitHub-hosted VM, or a self-hosted one you
+register) that actually executes a GitHub Actions job. [Lesson 11](../lessons/11-github-pro-features.md)
+
 **HEAD** — A pointer to whatever commit you currently have checked out;
 almost always points at a branch, which in turn points at a commit.
 [Lesson 02](../lessons/02-core-concepts-and-git-anatomy.md)

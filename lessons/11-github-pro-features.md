@@ -14,6 +14,8 @@ protection, and driving all of it from the terminal with the GitHub CLI.
 - Use `gh` (GitHub CLI) to create PRs, review, and manage issues without
   leaving the terminal
 - Know what CODEOWNERS, Issues, and Projects are for
+- Explain what GitHub Pages, Actions runners, and GitHub's pricing tiers
+  actually are
 
 ---
 
@@ -226,6 +228,47 @@ GitHub Issues are for bugs, feature requests, and tasks. Key features:
 GitHub Projects gives you a Kanban-style board (To Do / In Progress /
 Done, or fully custom columns) built directly from your Issues and PRs —
 useful if your team doesn't already live in Jira/Azure DevOps for this.
+
+---
+
+## GitHub the Platform: Hosting, Runners & Pricing
+
+Three practical questions beginners have about GitHub-as-a-product,
+answered briefly.
+
+### GitHub Pages — Free Static Site Hosting From a Repo
+
+**Settings → Pages** turns a branch (or a `/docs` folder, or a GitHub
+Actions deploy step) into a live website at
+`https://yourname.github.io/repo-name` — no server to manage. Works for
+plain HTML/CSS/JS or a static-site generator's build output (Jekyll,
+Hugo, MkDocs). Common uses: project documentation, a portfolio, or —
+like this course — rendering a `lessons/` folder as browsable pages.
+Custom domains are supported too.
+
+### What Machine Your Actions Workflow Actually Runs On
+
+`runs-on: ubuntu-latest` (or `windows-latest`, `macos-latest`) spins up a
+**fresh, disposable virtual machine** hosted by GitHub for that one job,
+then throws it away when the job ends — nothing persists between runs
+unless you explicitly cache or upload it. GitHub-hosted runners have
+fixed, modest specs (a few CPU cores, a few GB RAM) that are free up to a
+monthly minutes quota, then billed per minute. For heavier needs (GPUs,
+more RAM, access to a private network) teams run **self-hosted
+runners** — your own machine registered to run Actions jobs instead of
+GitHub's.
+
+### GitHub Pricing — What's Actually Free
+
+The **Free** plan (what you've used all course) includes unlimited
+public *and* private repos, Pages, Issues/Projects, and a monthly Actions
+minutes allowance (more for public repos than private). Paid tiers
+(**Team**, **Enterprise**) mainly add: more Actions minutes/storage,
+org-wide enforcement of branch protection and the security suite above,
+SSO/SAML, and audit logs — governance features for organizations, not
+things an individual developer is missing day to day. Exact limits and
+prices change; check github.com/pricing for current numbers rather than
+memorizing them.
 
 ---
 
