@@ -628,6 +628,82 @@ originals A, B, C are untouched but no longer on `main`.
 > same as A, B, C. After merging a PR, switch to `main`, pull, and delete
 > the old feature branch. Start the next change from a fresh branch.
 
+### 7d. Squash merge vs normal merge: what is the difference and the benefit?
+
+This is the most common doubt, so here is a direct comparison. Both end
+with the **same files** on `main`. Only the **history** is different.
+
+Say the feature branch has 4 commits: C="wip", D="fix typo", E="oops",
+F="final".
+
+```
+NORMAL MERGE (merge commit)
+
+      A---B-----------M      main      M = merge commit, 2 parents
+           \         /
+            C---D---E---F    feature
+
+  main's history now contains C, D, E, F and M.
+
+
+SQUASH MERGE
+
+      A---B---S*             main      S = C+D+E+F combined, 1 parent
+           \
+            C---D---E---F    feature   (still exists, NOT part of main)
+
+  main's history contains only S.
+```
+
+| | Normal merge | Squash merge |
+|---|---|---|
+| Commits added to `main` | All of them + 1 merge commit | Exactly 1 |
+| "wip" / "oops" commits visible on `main` | Yes | No |
+| History shape | Branches and joins (a braid) | Straight line |
+| Does Git know the branch was merged? | Yes | No (new unrelated commit) |
+| `git branch -d feature` works afterwards | Yes | No, needs `-D` |
+
+**Benefits of squash merge**
+
+- **Clean history.** One commit per PR, so `git log` on `main` reads like
+  a changelog.
+- **Messy commits are hidden.** "wip", "fix typo", "oops" never reach `main`.
+- **Easy revert.** To undo the whole feature: `git revert S`. With a
+  normal merge you must revert a merge commit with `-m 1`, or several
+  commits.
+- **Easier bisecting.** Every commit on `main` is a complete, working
+  feature, never a half-finished step.
+- **Clear PR-to-commit mapping.** One PR = one commit.
+
+**Benefits of normal merge**
+
+- **Full history is kept.** You can see how the work evolved and who
+  wrote which part.
+- **Fine-grained blame and bisect.** You can find the exact small commit
+  that introduced a bug.
+- **Git records the merge.** No surprises if you keep working on the
+  same branch.
+
+**Downsides of squash merge**
+
+- The detailed commits and per-commit authorship are collapsed into one
+  on `main`.
+- Git thinks the branch is still unmerged. If you keep building on the
+  old branch you can get repeated conflicts. **Delete the branch after
+  squashing** and start new work from a fresh `main`.
+
+**Which should you use?**
+
+- **Squash:** the usual choice for PR-based teams with small features and
+  messy working commits. It is the default on many projects.
+- **Normal merge:** long-lived branches (for example `develop` into
+  `main`), or when every commit is meaningful and worth keeping.
+- **Rebase and merge:** when you want to keep each commit but also want a
+  straight line with no merge commit.
+
+(The local command version, `git merge --squash`, is in
+[Lesson 05](05-branching-and-merging.md).)
+
 ---
 
 ## 8. Keeping Your Branch Updated While a PR Is Open

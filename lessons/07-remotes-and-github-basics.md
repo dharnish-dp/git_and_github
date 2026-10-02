@@ -203,6 +203,240 @@ Line by line:
 
 ---
 
+## How GitHub Works and What `origin` Really Is (Step by Step)
+
+**Why do we need this?** Most confusion in this lesson comes from not
+knowing *where things live*. Once you can picture exactly what is on
+GitHub, what is on your laptop, and what Git creates when you clone, every
+command below becomes obvious.
+
+### What GitHub actually is
+
+GitHub is two things stacked together:
+
+1. **A Git repository on a server.** The same kind of repo you have on
+   your laptop (commits, branches, tags), but with no working folder, just
+   the history. (Git calls this a *bare* repository.)
+2. **A website around it.** Pull requests, issues, Actions, permissions.
+   Those extras exist only on GitHub; they are not part of Git.
+
+So "pushing to GitHub" simply means "copying commits into the repo that
+lives on GitHub's server".
+
+```
+   GITHUB (server)                          YOUR LAPTOP
+  +-----------------------------+          +-----------------------------+
+  | Git repo (history only)     |          | Git repo (.git folder)      |
+  |   branches: main            |  <-----> |   + your working folder     |
+  |             feature-x       |  clone   |     (the files you edit)    |
+  |             bugfix-y        |  fetch   |                             |
+  | + website: PRs, issues ...  |  push    |                             |
+  +-----------------------------+          +-----------------------------+
+```
+
+### The three places a branch can exist
+
+This is the key idea. The same project has up to **three kinds of branch
+pointers**:
+
+| Pointer | Where it lives | Who can move it | Example |
+|---|---|---|---|
+| **Remote branch** | On GitHub's server | Whoever pushes (you or a teammate) | `main` on GitHub |
+| **Remote-tracking branch** | On your laptop, inside `.git` | Only `fetch`, `pull`, `push` | `origin/main` |
+| **Local branch** | On your laptop, inside `.git` | You: commit, merge, reset | `main` |
+
+Rule of thumb: **`origin/...` is Git's saved photo of the GitHub row.**
+It exists because Git works offline and never changes your own branches
+behind your back.
+
+### What `git clone` does, step by step
+
+Suppose GitHub has three branches: `main`, `feature-x`, `bugfix-y`.
+
+```bash
+git clone https://github.com/someuser/some-repo.git
+```
+
+Git performs these steps in order:
+
+1. **Makes the folder and an empty repo inside it** (`some-repo/.git`),
+   like `git init`.
+2. **Saves the remote.** It records the nickname `origin` and the URL in
+   `.git/config`:
+
+   ```
+   [remote "origin"]
+       url = https://github.com/someuser/some-repo.git
+       fetch = +refs/heads/*:refs/remotes/origin/*
+   ```
+
+   The `fetch = ...` line is a copy rule: "every branch on the remote
+   (`refs/heads/*`) is photographed into `refs/remotes/origin/*` on my
+   laptop". This rule is **why `origin/<branch>` appears automatically**.
+3. **Downloads everything**: every commit of **every** branch, plus all
+   file contents. Not only `main`.
+4. **Creates one `origin/<branch>` bookmark for each remote branch.**
+5. **Creates ONE local branch**: the remote's default branch (usually
+   `main`), pointing at the same commit as `origin/main`. It also writes
+   the tracking link into `.git/config`:
+
+   ```
+   [branch "main"]
+       remote = origin
+       merge = refs/heads/main
+   ```
+
+6. **Checks out that branch**: fills your folder with its files and
+   points `HEAD` at `main`.
+
+Result right after the clone:
+
+```
+    GITHUB (origin)
+    A---B---C                     main
+    A---B---C---D                 feature-x
+    A---B---E                     bugfix-y
+
+    YOUR COMPUTER
+    A---B---C                     main                 (local branch, HEAD is here)
+    A---B---C                     origin/main          (photo)
+    A---B---C---D                 origin/feature-x     (photo)
+    A---B---E                     origin/bugfix-y      (photo)
+```
+
+**What changed:** your laptop now holds all the commits, but only `main`
+is a real local branch. `feature-x` and `bugfix-y` exist only as
+`origin/...` photos. Verify:
+
+```bash
+git branch        # local branches only
+git branch -r     # remote-tracking branches only
+git branch -a     # both
+```
+
+Expected output:
+
+```
+* main                            <- git branch
+
+  origin/HEAD -> origin/main      <- git branch -r
+  origin/bugfix-y
+  origin/feature-x
+  origin/main
+```
+
+`origin/HEAD -> origin/main` just records "the remote's default branch is
+`main`".
+
+### Starting work on an existing remote branch
+
+You want to work on `feature-x`, which only exists as `origin/feature-x`:
+
+```bash
+git switch feature-x
+```
+
+Expected output:
+
+```
+branch 'feature-x' set up to track 'origin/feature-x'.
+Switched to a new branch 'feature-x'
+```
+
+What Git did: it saw no local `feature-x`, found exactly one
+`origin/feature-x`, so it **created a local `feature-x` at the same commit
+and linked it to `origin/feature-x`**. (Long form:
+`git switch -c feature-x --track origin/feature-x`.)
+
+```
+    YOUR COMPUTER
+    A---B---C                     main
+    A---B---C---D                 feature-x            (NEW local branch, HEAD)
+    A---B---C---D                 origin/feature-x     (photo, unchanged)
+```
+
+### Creating your own brand-new local branch
+
+```bash
+git switch -c my-work
+```
+
+Now only your laptop knows about `my-work`:
+
+```
+    YOUR COMPUTER
+    A---B---C                     main
+    A---B---C                     origin/main
+    A---B---C                     my-work              (HEAD) local only
+
+    GITHUB
+    A---B---C                     main                 (no my-work here)
+```
+
+- There is **no** `origin/my-work`, because `origin/...` only mirrors
+  branches that exist on GitHub.
+- There is no upstream yet, so plain `git push` fails with "no upstream
+  branch".
+
+You commit twice (D, E) and then publish it:
+
+```bash
+git push -u origin my-work
+```
+
+What happens in order:
+
+1. Git uploads commits D and E to GitHub.
+2. GitHub **creates the branch `my-work`** on its side.
+3. Git **creates `origin/my-work`** on your laptop (photo of what it just
+   created).
+4. `-u` writes the tracking link into `.git/config`.
+
+```
+    YOUR COMPUTER
+    A---B---C---D---E             my-work              (HEAD)
+    A---B---C---D---E             origin/my-work       (NEW photo)
+
+    GITHUB
+    A---B---C---D---E             my-work              (NEW branch)
+```
+
+**What changed:** the three rows are now in sync for `my-work`. From here,
+plain `git push` and `git pull` know where to go.
+
+### When the remote changes later
+
+| Event on GitHub | What your laptop shows after `git fetch` |
+|---|---|
+| A teammate pushes to `main` | `origin/main` moves forward; your `main` stays (now "behind") |
+| A teammate creates branch `feature-z` | New photo `origin/feature-z` appears; no local branch is created |
+| A teammate deletes `bugfix-y` | `origin/bugfix-y` stays as a stale photo until you run `git fetch --prune` |
+
+Tidy stale photos:
+
+```bash
+git fetch --prune
+git config --global fetch.prune true   # optional: do it on every fetch
+```
+
+### Summary: who creates what
+
+| Action | Creates `origin/<x>`? | Creates local `<x>`? | Creates `<x>` on GitHub? |
+|---|---|---|---|
+| `git clone` | Yes, for every remote branch | Only the default branch | No |
+| `git fetch` | Yes, for new remote branches; updates existing ones | No | No |
+| `git switch <x>` (exists only as `origin/<x>`) | No | Yes, tracking `origin/<x>` | No |
+| `git switch -c <x>` | No | Yes | No |
+| `git push -u origin <x>` | Yes | No (already exists) | Yes |
+
+> **Common confusion: "I cloned, but `git branch` shows only `main`.
+> Where are the other branches?"**
+> They are downloaded, but shown as `origin/...` photos. Use
+> `git branch -r` to see them and `git switch <name>` to create a local
+> branch from one.
+
+---
+
 ## SSH vs HTTPS — Set This Up Once, Never Type a Password Again
 
 **Why do we need this?** GitHub must know who you are before it accepts
